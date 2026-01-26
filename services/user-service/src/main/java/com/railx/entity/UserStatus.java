@@ -1,0 +1,8 @@
+package com.railx.entity;
+
+public enum UserStatus {
+    PENDING_ACTIVATION,
+    ACTIVE,
+    SUSPENDED,
+    DELETED
+}

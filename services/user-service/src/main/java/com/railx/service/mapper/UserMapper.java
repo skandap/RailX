@@ -11,7 +11,6 @@ public class UserMapper {
                 .name(userInputDTO.getName())
                 .email(userInputDTO.getEmail())
                 .phoneNumber(userInputDTO.getPhoneNumber())
-                .password(userInputDTO.getPassword())
                 .role(userInputDTO.getRole())
                 .status(UserStatus.PENDING_ACTIVATION.name())
                 .createdAt(LocalDateTime.now())
@@ -27,7 +26,7 @@ public class UserMapper {
                 .email(userEntity.getEmail())
                 .phoneNumber(userEntity.getPhoneNumber())
                 .role(userEntity.getRole())
-                .status(userEntity.getStatus())
+                .status(UserStatus.ACTIVE.name())
                 .build();
     }
 

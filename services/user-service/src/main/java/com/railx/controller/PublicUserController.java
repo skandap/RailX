@@ -8,6 +8,7 @@ import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -26,9 +27,9 @@ public class PublicUserController {
                 .body(new ApiResponse<>(true, "User created successfully, please login", user));
     }
 
-    @GetMapping("login/Email/{email}/Password/{password}")
-    public ResponseEntity<LoginResponse> loginUser(@PathVariable @Valid @NotNull String email, @PathVariable @Valid @NotNull String password) {
-        return new ResponseEntity<>(userService.login(email, password), HttpStatus.OK);
+    @PostMapping("login")
+    public ResponseEntity<LoginResponse> loginUser(@RequestBody LoginRequest loginRequest) {
+        return new ResponseEntity<>(userService.login(loginRequest), HttpStatus.CREATED);
     }
 
     @GetMapping("/verify/userId/{userId}/otp/{otp}")

@@ -32,7 +32,7 @@ public interface UserService {
     /**
      * If first login → OTP required
      */
-    LoginResponse login(String email, String password);
+    LoginResponse login(LoginRequest loginRequest);
 
     UserResponse fetchOwnUserById(UUID userId);
 

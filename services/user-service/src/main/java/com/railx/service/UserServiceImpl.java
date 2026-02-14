@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
@@ -32,6 +33,9 @@ public class UserServiceImpl implements UserService {
     @Autowired
     public OTPRepository otpRepository;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @Override
     public UserResponse register(UserInputDTO userInputDTO) {
         UserEntity user = userRepository.findByEmail(userInputDTO.getEmail());
@@ -39,6 +43,7 @@ public class UserServiceImpl implements UserService {
             throw new CredentialException("User is already registered");
         }
         UserEntity entity = UserMapper.mapToEntity(userInputDTO);
+        entity.setPassword(passwordEncoder.encode(userInputDTO.getPassword()));
         userRepository.save(entity);
         return UserMapper.mapToUserData(entity);
     }
@@ -49,22 +54,12 @@ public class UserServiceImpl implements UserService {
 
         OTPVerificationDto otpEntity = otpRepository
                 .findTopByUserIdOrderByCreatedAtDesc(userId)
-                .orElseThrow(() -> new NoDataException("user not found"));
+                .orElseThrow(() -> new NoDataException("User not found"));
 
-        if (otpEntity.isVerified()) {
-            throw new OtpException("OTP already verified");
-        }
-
-        if (otpEntity.getExpiryTime().isBefore(LocalDateTime.now())) {
-            throw new OtpException("OTP expired");
-        }
-
+        otpEntity.setAttempts(otpEntity.getAttempts() + 1);
         if (otpEntity.getAttempts() >= 3) {
             throw new OtpException("OTP attempts exceeded");
         }
-
-        otpEntity.setAttempts(otpEntity.getAttempts() + 1);
-
         if (!otpEntity.getOtp().equals(otp)) {
             otpRepository.save(otpEntity);
             return VerificationResponse.builder()
@@ -74,6 +69,13 @@ public class UserServiceImpl implements UserService {
                     .build();
         }
 
+        if (otpEntity.isVerified()) {
+            throw new OtpException("OTP already verified");
+        }
+        if (otpEntity.getExpiryTime().isBefore(LocalDateTime.now())) {
+            otpEntity.setVerified(false);
+            throw new OtpException("OTP expired");
+        }
         otpEntity.setVerified(true);
         otpRepository.save(otpEntity);
 
@@ -86,14 +88,14 @@ public class UserServiceImpl implements UserService {
 
 
     @Override
-    public LoginResponse login(String email, String password) {
+    public LoginResponse login(LoginRequest loginRequest) {
 
-        UserEntity user = userRepository.findByEmail(email);
+        UserEntity user = userRepository.findByEmail(loginRequest.getEmail());
         if (user == null) {
             throw new NoDataException("User not found");
         }
 
-        if (!user.getPassword().equals(password)) {
+        if (!user.getPassword().equals(loginRequest.getPassword())) {
             throw new CredentialException("Invalid credentials");
         }
 
@@ -139,17 +141,18 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse fetchOwnUserById(UUID userId) {
+        OTPVerificationDto otpEntity = otpRepository
+                .findTopByUserIdOrderByCreatedAtDesc(userId)
+                .orElseThrow(() -> new NoDataException("user not found"));
+        if (otpEntity.getExpiryTime().isBefore(LocalDateTime.now())) {
+            otpEntity.setVerified(false);
+            otpRepository.save(otpEntity);
+            throw new OtpException("OTP expired");
+        }
         UserEntity user = userRepository.findById(userId).orElseThrow(() -> new NoDataException("No user found for the id"));
         return UserMapper.mapToUserData(user);
     }
 
-    @Override
-    public String updateOwnUser(UserUpdateDTO userInputDTO, UUID userId) {
-        UserEntity user = userRepository.findById(userId).orElseThrow(() -> new NoDataException("No user found"));
-        user.setStatus(UserStatus.DELETED.name());
-        userRepository.save(user);
-        return "Updated Sucessfully";
-    }
 
     @Override
     public List<UserResponse> fetchAllUsers() {
@@ -160,8 +163,25 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public String updateOwnUser(UserUpdateDTO userInputDTO, UUID userId) {
+        OTPVerificationDto otpEntity = otpRepository
+                .findTopByUserIdOrderByCreatedAtDesc(userId)
+                .orElseThrow(() -> new NoDataException("user not found"));
+        if (otpEntity.getExpiryTime().isBefore(LocalDateTime.now())) {
+            otpEntity.setVerified(false);
+            otpRepository.save(otpEntity);
+            throw new OtpException("OTP expired");
+        }
+        UserEntity user = userRepository.findById(userId).orElseThrow(() -> new NoDataException("No user found"));
+        user.setName(userInputDTO.getName());
+        user.setPhoneNumber(userInputDTO.getPhoneNumber());
+        userRepository.save(user);
+        return "Updated Sucessfully";
+    }
+
+    @Override
     public UserResponse updateUserRoleStatus(UUID userId, AdminUpdateUserDTO updateUserDTO) {
-        UserEntity user=userRepository.findById(userId).orElseThrow(()->new NoDataException("No data found"));
+        UserEntity user = userRepository.findById(userId).orElseThrow(() -> new NoDataException("No data found"));
         user.setStatus(updateUserDTO.getStatus());
         user.setRole(updateUserDTO.getRole());
         userRepository.save(user);

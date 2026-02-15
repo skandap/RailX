@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -155,8 +156,13 @@ public class UserServiceImpl implements UserService {
 
 
     @Override
-    public List<UserResponse> fetchAllUsers() {
-        List<UserEntity> user = userRepository.findAll();
+    public List<UserResponse> fetchAllUsers(Pageable pageable, String search) {
+        List<UserEntity> user;
+        if (search == null) {
+            user = userRepository.findAll(pageable).getContent();
+        } else {
+            user = userRepository.findByName(search);
+        }
         return user.stream().map(UserMapper::mapToUserData)
                 .filter(Objects::nonNull)
                 .toList();

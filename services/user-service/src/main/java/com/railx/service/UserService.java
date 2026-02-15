@@ -1,6 +1,7 @@
 package com.railx.service;
 
 import com.railx.entity.*;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.UUID;
@@ -49,7 +50,7 @@ public interface UserService {
     // ADMIN APIs
     // =======================
 
-    List<UserResponse> fetchAllUsers();
+    List<UserResponse> fetchAllUsers(Pageable pageable, String search);
 
     /**
      * Update any user (role & status)

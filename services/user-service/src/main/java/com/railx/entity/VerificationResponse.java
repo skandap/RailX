@@ -3,6 +3,7 @@ package com.railx.entity;
 
 import lombok.*;
 
+import java.io.Serializable;
 import java.util.UUID;
 
 @Data
@@ -10,7 +11,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @ToString
 @Builder
-public class VerificationResponse {
+public class VerificationResponse implements Serializable {
     private UUID userId;
     private String verified;
     private String status;

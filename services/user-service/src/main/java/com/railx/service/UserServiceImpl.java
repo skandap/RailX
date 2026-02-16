@@ -11,6 +11,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -26,7 +29,6 @@ import java.util.UUID;
 @Slf4j
 public class UserServiceImpl implements UserService {
 
-    private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
 
     @Autowired
     public UserRepository userRepository;
@@ -129,7 +131,7 @@ public class UserServiceImpl implements UserService {
 
         otpRepository.save(otpEntity);
 
-        logger.info("OTP generated (expires in 5 mins): {}", otp);
+        log.info("OTP generated (expires in 5 mins): {}", otp);
 
         return UserMapper.mapToLogin(user);
     }
@@ -140,6 +142,7 @@ public class UserServiceImpl implements UserService {
     }
 
 
+    @Cacheable(value = "users", key = "#userId")
     @Override
     public UserResponse fetchOwnUserById(UUID userId) {
         OTPVerificationDto otpEntity = otpRepository
@@ -167,7 +170,7 @@ public class UserServiceImpl implements UserService {
                 .filter(Objects::nonNull)
                 .toList();
     }
-
+    @CachePut(value = "users", key = "#userId")
     @Override
     public String updateOwnUser(UserUpdateDTO userInputDTO, UUID userId) {
         OTPVerificationDto otpEntity = otpRepository
@@ -185,6 +188,7 @@ public class UserServiceImpl implements UserService {
         return "Updated Sucessfully";
     }
 
+    @CachePut(value = "users", key = "#userId")
     @Override
     public UserResponse updateUserRoleStatus(UUID userId, AdminUpdateUserDTO updateUserDTO) {
         UserEntity user = userRepository.findById(userId).orElseThrow(() -> new NoDataException("No data found"));
@@ -194,6 +198,7 @@ public class UserServiceImpl implements UserService {
         return UserMapper.mapToUserData(user);
     }
 
+    @CacheEvict(value = "users", key = "#userId")
     @Override
     public DeleteUserResponse deleteUser(UUID userId) {
         UserEntity user = userRepository.findById(userId).orElseThrow(() -> new NoDataException("No user found"));

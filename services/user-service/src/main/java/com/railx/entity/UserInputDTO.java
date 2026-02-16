@@ -6,11 +6,13 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.*;
 
+import java.io.Serializable;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @ToString
-public class UserInputDTO {
+public class UserInputDTO implements Serializable {
 
     @NotBlank
     @Pattern(regexp = "^[a-zA-Z ]+$", message = "Name must contain only letters and spaces")
